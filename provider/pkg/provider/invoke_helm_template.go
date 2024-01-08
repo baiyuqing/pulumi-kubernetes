@@ -77,7 +77,7 @@ type HelmChartOpts struct {
 
 // helmTemplate performs Helm fetch/pull + template operations and returns the resulting YAML manifest based on the
 // provided chart options.
-func helmTemplate(opts HelmChartOpts, clientSet *clients.DynamicClientSet) (string, error) {
+func helmTemplate(opts HelmChartOpts, clientSet *clients.DynamicClientSet, kubeconfig *KubeConfig) (string, error) {
 	tempDir, err := os.MkdirTemp("", "helm")
 	if err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func helmTemplate(opts HelmChartOpts, clientSet *clients.DynamicClientSet) (stri
 		}
 	}
 
-	result, err := chart.template(clientSet)
+	result, err := chart.template(clientSet, kubeconfig)
 	if err != nil {
 		return "", err
 	}
@@ -216,7 +216,7 @@ func normalizeChartRef(repoName string, repoURL string, originalChartRef string)
 }
 
 // template runs the `helm template` action to produce YAML from the Chart configuration.
-func (c *chart) template(clientSet *clients.DynamicClientSet) (string, error) {
+func (c *chart) template(clientSet *clients.DynamicClientSet, kubeconfig *KubeConfig) (string, error) {
 	registryClient, err := registry.NewClient(
 		registry.ClientOptDebug(c.opts.HelmChartDebug),
 		registry.ClientOptCredentialsFile(c.opts.HelmRegistryConfig),
@@ -228,6 +228,7 @@ func (c *chart) template(clientSet *clients.DynamicClientSet) (string, error) {
 	cfg := &action.Configuration{
 		Releases:       storage.Init(driver.NewMemory()),
 		RegistryClient: registryClient,
+		RESTClientGetter: kubeconfig,
 	}
 
 	// If the namespace isn't set, explicitly set it to "default".

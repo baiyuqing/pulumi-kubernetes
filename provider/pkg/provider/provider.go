@@ -878,12 +878,14 @@ func (k *kubeProvider) Invoke(ctx context.Context,
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "failed to unmarshal 'jsonOpts'")
 		}
-
-		text, err := helmTemplate(opts, k.clientSet)
+		kc := &KubeConfig{
+			restConfig:   k.config,
+			clientConfig: k.kubeconfig,
+		}
+		text, err := helmTemplate(opts, k.clientSet, kc)
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "failed to generate YAML for specified Helm chart")
 		}
-
 		// Decode the generated YAML here to avoid an extra invoke in the client.
 		result, err := decodeYaml(text, opts.Namespace, k.clientSet)
 		if err != nil {
